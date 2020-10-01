@@ -1,0 +1,1531 @@
+openapi: 3.0.2
+info:
+  title: Viva Coronia Backend API
+  version: 1.0.0
+servers:
+  - url: "https://vivacoronia.herokuapp.com"
+    description: Production server
+  - url: "http://localhost:3000"
+    description: Development server on localhost
+tags:
+  - name: Location Tracking
+    description: Manage location tracking data
+  - name: Infections
+    description: Manage infections status
+  - name: Contact Tracing
+    description: Retrieve information about contact with infected persons
+  - name: Trading
+    description: Manage product offers, needs, supermarket inventories and available categories
+  - name: Quiz
+    description: Manage questions and participate in quiz games
+  - name: Authentication
+    description: User Creation and Authentication
+
+paths:
+  /user/:
+    post:
+      tags: [Authentication]
+      description: Returns a new unique userId
+      requestBody:
+        description: Password for user account
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: "#/components/schemas/Password"
+            examples:
+              exPassword:
+                $ref: "#/components/examples/exPassword"
+      responses:
+        "200":
+          description: Unique userId
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: "#/components/schemas/User"
+              examples:
+                newUser:
+                  $ref: "#/components/examples/newUserExample"
+
+  /user/{userId}/login/:
+    post:
+      tags: [Authentication]
+      description: Returns a new JWT for a specific userId
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: "#/components/schemas/Password"
+            examples:
+              exPassw:
+                $ref: "#/components/examples/exPassword"
+      responses:
+        "200":
+          description: JSON Web Token
+          content:
+            application/json:
+              schema:
+                type: string
+                items:
+                  $ref: "#/components/schemas/JWT"
+              examples:
+                newJWT:
+                  $ref: "#/components/examples/newJWT"
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+
+  /user/{userId}/:
+    patch:
+      tags: [Authentication]
+      description: Grants admin status to user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: "#/components/schemas/AdminStatus"
+            examples:
+              userAdminPatch:
+                $ref: "#/components/examples/adminStatus"
+      responses:
+        "201":
+          description: "Granted"
+        "400":
+          description: "Invalid arguments"
+        "401":
+          description: "Not root admin"
+      parameters:
+        - name: adminjwt
+          in: header
+          schema:
+            type: string
+          required: true
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+
+    get:
+      tags: [Authentication]
+      description: Get user specific informations
+      responses:
+        "200":
+          description: Return status information of user
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: "#/components/schemas/AdminStatus"
+              examples:
+                adminStatus:
+                  $ref: "#/components/examples/adminStatus"
+        "400":
+          description: Incorrect userId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /user/{userId}/achievements/:
+    get:
+      tags: [User Information]
+      description: User specific information about achievements
+      responses:
+        "200":
+          description: Returns information about achievements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Achievement"
+              examples:
+                achievements:
+                  $ref: "#/components/examples/achievements"
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /user/{userId}/infectionScore/:
+    get:
+      tags: [User Information]
+      description: User specific infection score
+      responses: 
+        "200":
+          description: Returns information about the infection score
+          content:
+            application/json:
+              schema: 
+                type: object
+                items:
+                  $ref: "#/components/schemas/InfectionScore"
+              examples:
+                infectionScore:
+                  $ref: "#/components/examples/infectionScore"
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /admin/{userId}/login/:
+    post:
+      tags: [Authentication]
+      description: Returns a new JWT for admin functionality
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: "#/components/schemas/password"
+            examples:
+              exAdminPatch:
+                $ref: "#/components/examples/exPassword"
+      responses:
+        "200":
+          description: JSON Web Token
+          content:
+            application/json:
+              schema:
+                type: string
+                items:
+                  $ref: "#/components/schemas/JWT"
+              examples:
+                newJWT:
+                  $ref: "#/components/examples/newJWT"
+        "401":
+          description: No admin rights
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+
+  /locations/:
+    get:
+      tags: [Location Tracking]
+      description: Returns the list of all location records of all users in given distance around given coordinates
+      responses:
+        "200":
+          description: JSON array with location records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocationRecord"
+              examples:
+                twoelems:
+                  $ref: "#/components/examples/locationRecordArray"
+    parameters:
+      - name: latitude
+        in: query
+        schema:
+          $ref: "#/components/schemas/lat_long"
+      - name: longitude
+        in: query
+        schema:
+          $ref: "#/components/schemas/lat_long"
+      - name: distance
+        in: query
+        schema:
+          $ref: "#/components/schemas/distance"
+      - name: adminjwt
+        in: header
+        schema:
+          type: string
+        required: true
+
+  /locations/{userId}/:
+    get:
+      tags: [Location Tracking]
+      description: Returns the list of locations of the specified user
+      responses:
+        "200":
+          description: JSON array with location records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocationRecord"
+              examples:
+                twoelems:
+                  $ref: "#/components/examples/locationRecordArray"
+                empty:
+                  $ref: "#/components/examples/emptyArrayExample"
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The id of the user
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: start
+          in: query
+          schema:
+            $ref: "#/components/schemas/date"
+        - name: end
+          in: query
+          schema:
+            $ref: "#/components/schemas/date"
+    post:
+      tags: [Location Tracking]
+      description: "Adds location records"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/location"
+            examples:
+              twoelems:
+                $ref: "#/components/examples/locationArrayExample"
+      responses:
+        "201":
+          description: Created
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        description: The id of the user
+        schema:
+          $ref: "#/components/schemas/userId"
+      - name: jwt
+        in: header
+        schema:
+          type: string
+        required: true
+
+  /infection/{userId}/:
+    get:
+      tags: [Infections]
+      description: Get the latest infection status of the specified user, ordered by date of test
+      responses:
+        "200":
+          description: Returns the data of the latest infection status containing Status, approximated infection time and time of test
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetInfectionRecordDto"
+
+    post:
+      tags: [Infections]
+      description: Update the infection status of the specified user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInfectionRecordDto"
+      responses:
+        "201":
+          description: Created
+
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        description: The id of the user
+        schema:
+          $ref: "#/components/schemas/userId"
+      - name: jwt
+        in: header
+        schema:
+          type: string
+        required: true
+
+  /contacts/:
+    get:
+      tags: [Contact Tracing]
+      description: Get all records of contact with infected users
+      responses:
+        "200":
+          description: Successful retrieval of all contact records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContactRecord"
+      parameters:
+        - name: adminjwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /trading/offers/:
+    get:
+      tags: [Trading]
+      description: Retrieve offers by query parameters. Provide either both or none of latitude and longitude. They are also required when using radius
+      responses:
+        "200":
+          description: Array of ProductOfferRecords
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductOfferRecord"
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: product
+          in: query
+          schema:
+            $ref: "#/components/schemas/product"
+        - name: productCategory
+          in: query
+          schema:
+            $ref: "#/components/schemas/productCategory"
+        - name: longitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: latitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: radiusInKm
+          in: query
+          schema:
+            type: integer
+          example: 10000
+          description: Maximum radius in kilometers, default is unlimited
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+          example: true
+          description: if true returns inactive (deleted/sold) offers as well, default is false
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum:
+              - name
+              - distance
+              - price
+        - name: priceMin
+          in: query
+          schema:
+            type: number
+        - name: priceMax
+          in: query
+          schema:
+            type: number
+
+    post:
+      tags: [Trading]
+      description: Add a new offer. Ignores the _id attribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductOfferRecord"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Error creating the offer record
+      parameters:
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /trading/offers/{offerId}:
+    patch:
+      tags: [Trading]
+      description: Update an already existing offer, i.e. change or delete it. Only provide the properties to change
+      requestBody:
+        required: true
+        description: Only the changed properties need to be provided
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductOfferRecord"
+      responses:
+        "200":
+          description: Returns the complete succesfully changed offer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductOfferRecord"
+        "404":
+          description: The offer with the provided Id does not exist
+        "400":
+          description: Either offerId was not specified in the url path or there was another error
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          description: The id of the offer
+          schema:
+            $ref: "#/components/schemas/offerId"
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /trading/categories/:
+    get:
+      tags: [Trading]
+      description: Returns all available categories
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/productCategory"
+                example: ["foods", "hygiene", "protection"]
+    post:
+      tags: [Trading]
+      description: Adds a new category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              example:
+                name: foods
+      responses:
+        "201":
+          description: Successfully added the category
+        "400":
+          description: property \"name\" was not specified
+        "500":
+          description: An error ocurred
+      parameters:
+        - name: adminjwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /trading/needs/:
+    get:
+      tags: [Trading]
+      description: Retrieve needs by query parameters. Provide either both or none of latitude and longitude. They are also required when using radius
+      responses:
+        "200":
+          description: Array of ProductNeedRecords
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductNeedRecord"
+      parameters:
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+        - name: userId
+          in: query
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: product
+          in: query
+          schema:
+            $ref: "#/components/schemas/product"
+        - name: productCategory
+          in: query
+          schema:
+            $ref: "#/components/schemas/productCategory"
+        - name: longitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: latitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: radius
+          in: query
+          schema:
+            type: integer
+          example: 10000
+          description: Radius in meters, default is 25000
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+          example: true
+          description: if true returns inactive (deleted/fulfilled) offers as well, default is false
+
+    post:
+      tags: [Trading]
+      description: Adds a new product need
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductNeedRecord"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Error creating the product need record
+      parameters:
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+
+  /trading/needs/{needId}:
+    patch:
+      tags: [Trading]
+      description: delete an already existing need.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                fulfilled:
+                  type: boolean
+                  example: true
+                  description: only property fulfilled is necessary
+      responses:
+        "200":
+          description: Returns the complete succesfully changed offer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductNeedRecord"
+        "404":
+          description: The need with the provided Id does not exist
+        "400":
+          description: Either needId was not specified in the url path or there was another error
+      parameters:
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+        - name: needId
+          in: path
+          required: true
+          description: The id of the need
+          schema:
+            $ref: "#/components/schemas/needId"
+
+  /trading/supermarket/:
+    get:
+      tags: [Trading]
+      description: Get all available supermarkets
+      responses:
+        "200":
+          description: Array of supermarket records (without inventory items)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupermarketWithoutInventory"
+    post:
+      tags: [Trading]
+      description: Create a new supermarket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Supermarket"
+      responses:
+        "201":
+          description: Successfully created new supermarket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supermarket"
+
+  /trading/supermarket/{supermarketId}/:
+    get:
+      tags: [Trading]
+      description: Get the details of the supermarket with specified id
+      parameters:
+        - name: supermarketId
+          in: path
+          required: true
+          description: The id of the supermarket
+          schema:
+            $ref: "#/components/schemas/supermarketId"
+      responses:
+        "200":
+          description: Data associated with this supermarket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supermarket"
+    delete:
+      tags: [Trading]
+      description: Delete an existing supermarket with the specified Id
+      parameters:
+        - name: supermarketId
+          in: path
+          required: true
+          description: The id of the supermarket
+          schema:
+            $ref: "#/components/schemas/supermarketId"
+      responses:
+        "200":
+          description: Successfully deleted supermarket
+        "404":
+          description: No supermarket with specified id was found
+    post:
+      tags: [Trading]
+      description: Post a new item to this supermarket's inventory
+      parameters:
+        - name: supermarketId
+          in: path
+          required: true
+          description: The id of the supermarket
+          schema:
+            $ref: "#/components/schemas/supermarketId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryItem"
+      responses:
+        "201":
+          description: Successfully created inventory item for supermarket. Result contains full supermarket details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supermarket"
+
+  /trading/supermarket/{supermarketId}/{itemId}/:
+    patch:
+      tags: [Trading]
+      description: Patches the availability level of the specified inventory item. Returns the full resulting supermarket details.
+      parameters:
+        - name: supermarketId
+          in: path
+          required: true
+          description: The id of the supermarket
+          schema:
+            $ref: "#/components/schemas/supermarketId"
+        - name: itemId
+          in: path
+          required: true
+          description: The id of the inventory item
+          schema:
+            $ref: "#/components/schemas/inventoryItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/availabilityLevelObj"
+      responses:
+        "200":
+          description: Successfully updated the availability level
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supermarket"
+        "400":
+          description: Either there was no availability level specified or an incorrect one or there was another error
+
+  /trading/productSearch/:
+    get:
+      tags: [Trading]
+      description: Retrieve offers and supermarket inventory items by query parameters. Provide either both or none of latitude and longitude. They are also required when using radius
+      responses:
+        "200":
+          description: Array of ProductOfferRecords and/or supermarket inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: "#/components/schemas/ProductOfferRecord"
+                    - $ref: "#/components/schemas/InventoryItemWithSupermarketDetails"
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            $ref: "#/components/schemas/userId"
+        - name: product
+          in: query
+          schema:
+            $ref: "#/components/schemas/product"
+        - name: productCategory
+          in: query
+          schema:
+            $ref: "#/components/schemas/productCategory"
+        - name: longitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: latitude
+          in: query
+          schema:
+            $ref: "#/components/schemas/lat_long"
+        - name: radiusInKm
+          in: query
+          schema:
+            type: integer
+          example: 10000
+          description: Maximum radius in kilometers, default is unlimited
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+          example: true
+          description: if true returns inactive (deleted/sold) offers as well, default is false
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum:
+              - name
+              - distance
+              - price
+        - name: priceMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: priceMax
+          in: query
+          schema:
+            type: number
+            format: double
+
+  /quiz/questions/:
+    post:
+      tags: [Quiz]
+      description: Add a new quiz question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Question"
+      parameters:
+        - name: adminjwt
+          in: header
+          schema:
+            type: string
+          required: true
+      responses:
+        201:
+          description: Successful creation
+        400:
+          description: Invalid question
+        401:
+          description: Insufficient permissions (Admin permission required)
+
+  /quiz/game/:
+    post:
+      tags: [Quiz]
+      description: Start a new quiz game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                location:
+                  $ref: "#/components/schemas/lon_lat_array"
+      parameters:
+        - name: jwt
+          in: header
+          schema:
+            type: string
+          required: true
+      responses:
+        201:
+          description: Created a new game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizGame"
+        400:
+          description: Location invalid
+        404:
+          description: No other players available
+
+  /quiz/game/{gameId}:
+    parameters:
+      - name: gameId
+        in: path
+        required: true
+        description: The id of the game
+        schema:
+          type: string
+        example: 5f22c05fa920c7004af2a477
+      - name: jwt
+        in: header
+        schema:
+          type: string
+        required: true
+    get:
+      tags: [Quiz]
+      description: Retrieve quiz game info
+      responses:
+        200:
+          description: "Successful retrieval"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizGame"
+        404:
+          description: game with the provided gameId does not exist
+
+  /quiz/game/{gameId}/answers/:
+    parameters:
+      - name: gameId
+        in: path
+        required: true
+        description: The id of the game
+        schema:
+          type: string
+        example: 5f22c05fa920c7004af2a477
+      - name: jwt
+        in: header
+        schema:
+          type: string
+        required: true
+    post:
+      tags: [Quiz]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizGameAnswerSubmission"
+      responses:
+        201:
+          description: Added the answer
+        404:
+          description: Couldn't find the game
+        400:
+          description: Answer not well formatted, or answer to wrong question, or not players turn
+
+components:
+  schemas:
+    QuizGame:
+      type: object
+      properties:
+        _id:
+            $ref: "#/components/schemas/gameId"
+        players:
+          type: array
+          minLength: 2
+          maxLength: 2
+          items:
+            $ref: "#/components/schemas/userId"
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+          minLength: 4
+          maxLength: 4
+        answers:
+          description: The answers of the players to the question denoted by the property questionIndex
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizGameAnswer"
+        opponentInfo:
+          properties:
+            userId:
+              $ref: "#/components/schemas/userId"
+            distance:
+              $ref: "#/components/schemas/distance"
+
+    QuizGameAnswer:
+      type: object
+      properties:
+        userId:
+          $ref: "#/components/schemas/userId"
+        questionIndex:
+          type: integer
+          minimum: 0
+        answer:
+          type: string
+          example: "2"
+        isCorrect:
+          type: boolean
+
+    QuizGameAnswerSubmission:
+      type: object
+      properties:
+        userId:
+          $ref: "#/components/schemas/userId"
+        questionIndex:
+          type: integer
+          minimum: 0
+        answer:
+          type: string
+
+    Question:
+      type: object
+      description: Quiz Question
+      required:
+        - "question"
+        - "answers"
+        - "correctAnswer"
+      properties:
+        question:
+          type: string
+        answers:
+          type: array
+          items:
+            type: string
+            minLength: 4
+            maxLength: 4
+        correctAnswer:
+          type: string
+      example:
+        question: "1+1"
+        answers:
+          - "3"
+          - "2"
+          - "1"
+          - "4"
+        correctAnswer: "2"
+
+    User:
+      type: object
+      description: Schema for user representation
+      example:
+        userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        time: "2020-05-21T21:39:08+02:00"
+      properties:
+        userId:
+          $ref: "#/components/schemas/userId"
+        time:
+          type: string
+          format: date-time
+
+    JWT:
+      type: object
+      description: JWT for authentication purposes
+      example:
+        jwt: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      properties:
+        jwt:
+          type: string
+
+    Password:
+      type: object
+      description: schema for password string
+      example:
+        password: "abc123!ZY_5"
+      properties:
+        password:
+          $ref: "#/components/schemas/password"
+
+    AdminStatus:
+      type: object
+      description: schema for admin status
+      example:
+        isAdmin: true
+      properties:
+        isAdmin:
+          $ref: "#/components/schemas/isAdmin"
+
+    Achievement:
+      type: object
+      description: schema for achievement
+      example:
+        name: "foreveralone"
+        status: "bronce"
+        remaining: 2
+        howmany: 20
+      properties:
+        name: 
+          $ref: "#/components/schemas/achievementName"
+        badge: 
+          $ref: "#/components/schemas/achievementBadge"
+        remaining: 
+          $ref: "#/components/schemas/achievementRemaining"
+        howmany: 
+          $ref: "#/components/schemas/achievementHowMany"
+
+    InfectionScore:
+      type: object
+      description: schema for infection score
+      example: 
+        infectionScore: 0.4
+      properties:
+        infectionScore:
+          $ref: "#/components/schemas/infectionScore"
+
+    infectionScore:
+      type: number
+      description: infection score
+
+    achievementName:
+      type: string
+      description: name of the achievement
+
+    achievementBadge:
+      type: string
+      description: badge of the achievement, can be bronce/silver/gold
+
+    achievementRemaining:
+      type: number
+      description: how many units remain for the next badge
+
+    achievementHowMany:
+      type: number
+      description: How many users do have this badge in percent
+
+    LocationRecord:
+      type: object
+      description: Location record with location and userId
+      example:
+        userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        time: "2020-05-21T21:39:08+02:00"
+        location:
+          type: "Point"
+          coordinates:
+            - 8.454
+            - 50.225
+      properties:
+        userId:
+          $ref: "#/components/schemas/userId"
+        time:
+          type: string
+          format: date-time
+        location:
+          $ref: "#/components/schemas/GeoJSONPoint2D"
+
+    location:
+      type: object
+      description: GeoJSONPoint2D along with timestamp
+      properties:
+        time:
+          type: string
+          format: date-time
+          example: "2020-05-21T21:39:08+02:00"
+        location:
+          $ref: "#/components/schemas/GeoJSONPoint2D"
+      example:
+        time: 2020-05-21T19:39:08.000Z
+        location:
+          type: "Point"
+          coordinates:
+            - -122.96
+            - 50.114
+
+    GeoJSONPoint2D:
+      type: object
+      description: Geo coordinates of a point on a map
+      properties:
+        type:
+          type: string
+          enum:
+            - Point
+        coordinates:
+          type: array
+          items:
+            type: number
+            maxItems: 2
+            minItems: 2
+      example:
+        type: "Point"
+        coordinates:
+          - -122.96
+          - 50.114
+
+    userId:
+      type: string
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+      
+    gameId:
+      type: string
+      example: 5f457b9b314bdd002fdf5626
+
+    password:
+      type: string
+
+    isAdmin:
+      type: boolean
+
+    lon_lat_array:
+      type: array
+      items:
+        $ref: "#/components/schemas/lat_long"
+      minLength: 2
+      maxLength: 2
+      example:
+        - 180
+        - 90
+
+    lat_long:
+      type: number
+      format: double
+      example: 8.454
+
+    distance:
+      type: integer
+      format: int64
+      example: 500
+
+    date:
+      type: string
+      format: date-time
+      example: "2020-05-12T00:00:00.000Z"
+
+    GetInfectionRecordDto:
+      type: object
+      description: Object with data containing an infection status.
+      example:
+        newStatus: "infected"
+        dateOfTest: "2020-05-12T00:00:00.000Z"
+        occuredDateEstimation: "2020-05-11T00:00:00.000Z"
+      properties:
+        newStatus:
+          type: string
+        dateOfTest:
+          type: string
+          format: date-time
+        occuredDateEstimation:
+          type: string
+          format: date-time
+
+    PostInfectionRecordDto:
+      type: object
+      description: Object with data for updating an infection status.
+      example:
+        newStatus: "infected"
+        dateOfTest: "2020-05-12T00:00:00.000Z"
+        occuredDateEstimation: "2020-05-11T00:00:00.000Z"
+        signature: "1234567890abcdef"
+      properties:
+        newStatus:
+          type: string
+        dateOfTest:
+          type: string
+          format: date-time
+        occuredDateEstimation:
+          type: string
+          format: date-time
+        signature:
+          format: string
+
+    ContactRecord:
+      type: object
+      description: Records of contact with an infected user.
+      properties:
+        userId:
+          $ref: "#/components/schemas/userId"
+        infectedUserId:
+          $ref: "#/components/schemas/userId"
+        locationRecord:
+          $ref: "#/components/schemas/LocationRecord"
+      example:
+        userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpabcJ9"
+        infectedUserId: "fDthGGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        locationRecord:
+          userId: "fDthGGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+          time: "2020-05-21T21:39:08+02:00"
+          location:
+            type: Point
+            coordinates:
+              - 8.454
+              - 50.225
+
+    ProductOfferRecord:
+      type: object
+      description: Contains details about a product offer provided by a user
+      properties:
+        _id:
+          $ref: "#/components/schemas/offerId"
+        userId:
+          $ref: "#/components/schemas/userId"
+        product:
+          $ref: "#/components/schemas/product"
+        amount:
+          type: number
+          description: How much of the product is offered (1 time, 2 times, 5 times)
+          example: 5
+        productCategory:
+          $ref: "#/components/schemas/productCategory"
+        price:
+          type: number
+          example: 8.50
+          description: Price per piece
+        details:
+          type: string
+          description: Additional information or description of the offer or product
+        location:
+          $ref: "#/components/schemas/GeoJSONPoint2D"
+        deactivatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of deactivation, if this offer is not available anymore, else null
+        sold:
+          type: boolean
+          description: True if this product has sold, false if it was deleted without being sold. Only valid if deactivatedAt is not null.
+        phoneNumber:
+          type: string
+          example: "+49 6151 16 23190"
+
+    ProductNeedRecord:
+      type: object
+      description: Contains details about a product need provided by a user
+      properties:
+        _id:
+          $ref: "#/components/schemas/needId"
+        userId:
+          $ref: "#/components/schemas/userId"
+        product:
+          $ref: "#/components/schemas/product"
+        productCategory:
+          $ref: "#/components/schemas/productCategory"
+        amount:
+          type: number
+          description: How much of the product is offered (1 time, 2 times, 5 times)
+          example: 5
+        location:
+          $ref: "#/components/schemas/GeoJSONPoint2D"
+        deactivatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of deactivation
+        fulfilled:
+          type: boolean
+          description: True if this product need is fullfilled
+
+    product:
+      type: string
+      example: Flour 1kg
+
+    productCategory:
+      type: string
+      description: Must be one of the categories already available (see getCategories), if not POST category
+      example: foods
+
+    offerId:
+      type: string
+      example: 5f0eb3935f839100238c0fcb
+
+    needId:
+      type: string
+      example: 5f22c05fa920c7004af2a477
+
+    Supermarket:
+      description: Contains full details about a supermarket
+      allOf:
+        - $ref: "#/components/schemas/SupermarketWithoutInventory"
+        - type: object
+          properties:
+            inventory:
+              description: Array of inventory items associated with this supermarket
+              type: array
+              items:
+                $ref: "#/components/schemas/InventoryItem"
+
+    SupermarketWithoutInventory:
+      type: object
+      description: Contains details about a supermarket without its inventory
+      properties:
+        supermarketId:
+          $ref: "#/components/schemas/supermarketId"
+        name:
+          type: string
+          example: Rewe Heinrichstraße Darmstadt
+        location:
+          $ref: "#/components/schemas/GeoJSONPoint2D"
+
+    supermarketId:
+      type: string
+      description: The placeId of the supermarket according to the googleMaps API
+      example: 0123456789
+
+    InventoryItem:
+      type: object
+      description: A shoppable item of a supermarket
+      properties:
+        _id:
+          $ref: "#/components/schemas/inventoryItemId"
+        product:
+          $ref: "#/components/schemas/product"
+        productCategory:
+          $ref: "#/components/schemas/productCategory"
+        availabilityLevel:
+          $ref: "#/components/schemas/availabilityLevel"
+
+    InventoryItemWithSupermarketDetails:
+      allOf:
+        - $ref: "#/components/schemas/InventoryItem"
+        - $ref: "#/components/schemas/SupermarketWithoutInventory"
+        - type: object
+          properties:
+            distanceToUser:
+              description: distance in km
+              type: number
+              example: 11.038
+
+    inventoryItemId:
+      type: string
+      example: 5f22c05fa920c7004af2a477
+
+    availabilityLevelObj:
+      type: object
+      properties:
+        availabilityLevel:
+          $ref: "#/components/schemas/availabilityLevel"
+
+    availabilityLevel:
+      description: any integer greater or equal to 0 and less than or equal to 3
+      type: number
+      example: 2
+
+  examples:
+    locationArrayExample:
+      summary: Array with two location ojects
+    newUserExample:
+      summary: Json Object with the new user id and the creation time
+      value:
+        userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        time: "2020-06-11T17:51:30.000Z"
+
+    infectionScore:
+      value:
+        infectionScore: 0.4
+
+    newJWT:
+      value:
+        jwt: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+    exPassword:
+      summary: Json object with the password string for a user account
+      value:
+        password: "abc123!ZY_5"
+
+    adminStatus:
+      value:
+        isAdmin: "true"
+
+    achievements:
+      summary: Array with achievements of a specific user
+      value:
+        - name: "foreveralone"
+          badge: "none"
+          remaining: 2
+          howmany: 100
+        - name: moneyboy
+          badge: "silver"
+          remaining: 30
+          howmany: 3
+        - name: "hamsterbuyer"
+          badge: "bronce"
+          remaining: 20
+          howmany: 30
+        - name: "superspreader"
+          badge: "gold"
+          remaining: 0
+          howmany: 1
+        - name: "quizmaster"
+          badge: "gold"
+          remaining: 0
+          howmany: 3
+
+    geoJsonPoint2DArrayExample:
+      summary: Array with two GeoJSON Point2D ojects
+      value:
+        - time: 2020-05-21T19:39:08.000Z
+          location:
+            type: "Point"
+            coordinates:
+              - -122.96
+              - 50.114
+        - time: 2020-04-12T21:50:42.000Z
+          location:
+            type: "Point"
+            coordinates:
+              - 8.454
+              - 50.225
+
+    locationRecordArray:
+      summary: Array with two locations including userId, i.e. two location records
+      value:
+        - userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+          time: 2020-05-21T19:39:08.000Z
+          location:
+            type: "Point"
+            coordinates:
+              - -122.96
+              - 50.114
+        - userId: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ5"
+          time: 2020-04-12T21:50:42.000Z
+          location:
+            type: "Point"
+            coordinates:
+              - 8.454
+              - 50.225
+
+    emptyArrayExample:
+      summary: Empty Array
+      value: []

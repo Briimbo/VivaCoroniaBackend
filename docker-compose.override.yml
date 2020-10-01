@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  app:
+    ports:
+      - 9229:9229
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ./:/usr/src/app
+  swagger-editor:
+    image: swaggerapi/swagger-editor
+    ports:
+      - 3080:8080
+    volumes:
+      - ./api.yaml:/api.yaml
+    environment:
+      SWAGGER_FILE: /api.yaml

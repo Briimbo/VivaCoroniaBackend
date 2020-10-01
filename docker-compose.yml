@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  app:
+    ports:
+      - 3000:3000
+      - 3443:3443
+    depends_on:
+      - mongo
+    environment:
+      MONGODB_CONNECTION_STRING: "mongodb://root:insecure_password@mongo"
+    volumes:
+      - ./docker/dev.key:/keys/server.key
+      - ./docker/dev.crt:/keys/server.crt
+
+  mongo:
+    image: mongo:4.2
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: insecure_password
+    volumes:
+      - vivacoronia-mongodb:/data/db
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: insecure_password
+
+volumes:
+  vivacoronia-mongodb:
